@@ -15,7 +15,7 @@ CONTACT_BLOCK = (
 REWRITE_SYSTEM_PROMPT = (
     "You are a query understanding assistant. "
     "Given a conversation history and the latest user query, output a JSON object with exactly four keys:\n"
-    "  intent       : classify the query as one of: 'greeting', 'acknowledgement', 'faq'\n"
+    "    - 'intent'         : classify the query as one of: 'greeting', 'acknowledgement', 'faq'\n"
     "    - 'greeting'       : hi, hello, hey, good morning, good afternoon, namaste, and equivalents in any language\n"
     "    - 'acknowledgement': ok, okay, cool, thanks, thank you, got it, sure, great, noted, understood, nice, "
     "awesome, perfect, pakka, superr, and equivalents in any language\n"
