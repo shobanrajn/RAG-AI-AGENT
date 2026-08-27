@@ -134,16 +134,34 @@ def extract_after_dot(text: str, phrase: str, logger) -> str:
         return text
 
 
-def convert_to_dict_if_possible(input_str: str, logger) -> tuple:
-    try:
-        res_type = "string"
-        logger.info(f"input_str in convert_to_dict_if_possible func: {input_str}")
-        result = ast.literal_eval(input_str)
-        if isinstance(result, dict):
-            return result, "json"
+def convert_to_dict_if_possible(input_str, logger):
+    logger.info(f"input_str in convert_to_dict_if_possible func: {input_str}")
+
+    # ------------------------------------------------------------------
+    # CF05264 - no loan available issues
+    # Skip conversion for plain text responses.
+    # ------------------------------------------------------------------
+    if not isinstance(input_str, str):
+        return input_str, "json"
+
+    input_str = input_str.strip()
+
+    # CF05264 - no loan available issues
+    if not (input_str.startswith("{") or input_str.startswith("[")):
         return input_str, "string"
+
+    try:
+        result = ast.literal_eval(input_str)
+        logger.info(f"result in convert_to_dict_if_possible func: {result}")
+        return result, "json"
+
     except Exception as e:
         logger.exception(f"exception in convert_to_dict_if_possible : {e}")
+
+        # ------------------------------------------------------------------
+        # CF05264 - no loan available issues
+        # Return original string instead of raising exception.
+        # ------------------------------------------------------------------
         return input_str, "string"
 
 

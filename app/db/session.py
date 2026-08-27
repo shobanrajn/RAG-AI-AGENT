@@ -8,44 +8,100 @@ from motor.motor_asyncio import AsyncIOMotorCollection
 
 from app.core.config import settings
 
+def init_mongo_client():
+    global mongo_client
+    mongo_client = AsyncIOMotorClient(
+        settings.MONGO_MASTER_HOST,
+        maxPoolSize=50,      
+        minPoolSize=5,        
+        maxIdleTimeMS=30000,
+        connectTimeoutMS=5000,
+        serverSelectionTimeoutMS=5000,
+    )
+ 
+ 
+def close_mongo_client():
+    global mongo_client
+    if mongo_client is not None:
+        mongo_client.close()
+        mongo_client = None
+
+
+def get_db():
+    """
+    Returns all collections from the shared client.
+    No ping, no new connection — just resolves collection handles.
+    """
+    db = mongo_client[settings.MONGO_DB_NAME]
+    return (
+        db[settings.MONGO_LOG_COLLECTION],
+        db[settings.MONGO_LEAD_COLLECTION],
+        db[settings.MONGO_CRM_COLLECTION],
+        db[settings.MONGO_CUSTOMER_CHECK_COLLECTION],
+        db[settings.MONGO_SEARCH_DATA_COLLECTION],
+    )
+ 
+ 
+def get_hr_db():
+    db = mongo_client[settings.MONGO_DB_NAME]
+    return db[settings.MONGO_HR_COLLECTION]
+
+# async def create_mongo_connection(logger):
+#     try:
+#         agent_col = None
+#         lead_agent_col = None
+#         cust_col = None
+#         crm_col = None
+#         histrory_col = None
+#         mongo_client = AsyncIOMotorClient(settings.MONGO_MASTER_HOST)
+#         response = await mongo_client.admin.command("ping")
+#         logger.info(f"Ping Response: {response}")
+#         if response.get("ok") == 1:
+#             agent_db = mongo_client[settings.MONGO_DB_NAME]
+#             agent_col = agent_db[settings.MONGO_LOG_COLLECTION]
+#             lead_agent_col = agent_db[settings.MONGO_LEAD_COLLECTION]
+#             cust_col = agent_db[settings.MONGO_CUSTOMER_CHECK_COLLECTION]
+#             crm_col = agent_db[settings.MONGO_CRM_COLLECTION]
+#             histrory_col = agent_db[settings.MONGO_SEARCH_DATA_COLLECTION]
+#             logger.info("MongoDB connection is successful")
+#         return agent_col, lead_agent_col, crm_col, cust_col, histrory_col
+#     except Exception as e:
+#         logger.info("Exception in create_mongo_connection_v4 connection!!!")
+#         logger.exception(e)
+#         return None, None, None, None
+
+
+# async def create_mongo_connection_hr_agent(logger):
+#     try:
+#         hr_agent_col = None
+#         mongo_client = AsyncIOMotorClient(settings.MONGO_MASTER_HOST)
+#         response = await mongo_client.admin.command("ping")
+#         logger.info(f"Ping Response: {response}")
+#         if response.get("ok") == 1:
+#             hr_agent_db = mongo_client[settings.MONGO_DB_NAME]
+#             hr_agent_col = hr_agent_db[settings.MONGO_HR_COLLECTION]
+#             logger.info("MongoDB connection is successful")
+#         return hr_agent_col
+#     except Exception as e:
+#         logger.info("Exception in create_mongo_connection_hr_agent connection!!!")
+#         logger.exception(e)
+#         return None
+
 async def create_mongo_connection(logger):
     try:
-        agent_col = None
-        lead_agent_col = None
-        cust_col = None
-        crm_col = None
-        histrory_col = None
-        mongo_client = AsyncIOMotorClient(settings.MONGO_MASTER_HOST)
-        response = await mongo_client.admin.command("ping")
-        logger.info(f"Ping Response: {response}")
-        if response.get("ok") == 1:
-            agent_db = mongo_client[settings.MONGO_DB_NAME]
-            agent_col = agent_db[settings.MONGO_LOG_COLLECTION]
-            lead_agent_col = agent_db[settings.MONGO_LEAD_COLLECTION]
-            cust_col = agent_db[settings.MONGO_CUSTOMER_CHECK_COLLECTION]
-            crm_col = agent_db[settings.MONGO_CRM_COLLECTION]
-            histrory_col = agent_db[settings.MONGO_SEARCH_DATA_COLLECTION]
-            logger.info("MongoDB connection is successful")
+        agent_col, lead_agent_col, crm_col, cust_col, histrory_col = get_db()
+        logger.info("MongoDB collection pool connected")
         return agent_col, lead_agent_col, crm_col, cust_col, histrory_col
     except Exception as e:
-        logger.info("Exception in create_mongo_connection_v4 connection!!!")
         logger.exception(e)
         return None, None, None, None, None
-
-
+ 
 async def create_mongo_connection_hr_agent(logger):
     try:
-        hr_agent_col = None
-        mongo_client = AsyncIOMotorClient(settings.MONGO_MASTER_HOST)
-        response = await mongo_client.admin.command("ping")
-        logger.info(f"Ping Response: {response}")
-        if response.get("ok") == 1:
-            hr_agent_db = mongo_client[settings.MONGO_DB_NAME]
-            hr_agent_col = hr_agent_db[settings.MONGO_HR_COLLECTION]
-            logger.info("MongoDB connection is successful")
+        hr_agent_col = get_hr_db()
+        logger.info("MongoDB collection pool connected")
         return hr_agent_col
     except Exception as e:
-        logger.info("Exception in create_mongo_connection_hr_agent connection!!!")
         logger.exception(e)
         return None
 

@@ -24,6 +24,11 @@ add_exception_handlers(app)
 
 app.include_router(api_v1_router)
 
+@app.on_event("startup")
+def startup_faq_modules():
+    faq_logging._cleanup_old_logs()
+    load_reranker()
+
 @app.get("/")
 def root():
     return {"message": "Agent is running"}

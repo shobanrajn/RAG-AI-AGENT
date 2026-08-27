@@ -7,7 +7,9 @@ from app.language.language_mapping import (
     TECHNICAL_ERROR_LANGUAGE_DICT,
     FETCH_ERROR_LANGUAGE_DICT,
     MOBILE_MISMATCH_LANGUAGE_DICT,
-    SPAM_MESSAGE_LANGUAGE_DICT
+    SPAM_MESSAGE_LANGUAGE_DICT,
+    DICT_CONVERSION_MESSAGE_LANGUAGE_DICT,
+    NO_LOANS_AVAILABLE_LANGUAGE_DICT
 )
 
 def get_language_mapping(lang_code="en"):
@@ -27,4 +29,6 @@ def get_language_mapping(lang_code="en"):
         "fetch_error_message": FETCH_ERROR_LANGUAGE_DICT[lang_code],
         "mobile_mismatch_message": MOBILE_MISMATCH_LANGUAGE_DICT[lang_code],
         "spam_message": SPAM_MESSAGE_LANGUAGE_DICT[lang_code],
+        "dict_conversion_message": DICT_CONVERSION_MESSAGE_LANGUAGE_DICT[lang_code],
+        "no_loan_message": NO_LOANS_AVAILABLE_LANGUAGE_DICT[lang_code],
     }

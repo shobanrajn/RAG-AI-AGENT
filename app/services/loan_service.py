@@ -182,7 +182,7 @@ async def handle_my_loans_flow(
         response, res_type, status_code, retry_flag,
         loan_api_failure_flag, detected_mobile_no
     """
-
+    
     from app.core.constants import (
         ENTITY_LIMITED_LIST,
         ENTITY_SUPER_LIST,
@@ -347,7 +347,8 @@ async def handle_my_loans_flow(
                     entity,
                     show_all_loans,
                 )
-
+                logger.info(f"resp_count : {resp_count}")
+                logger.info(f"resp api data : {resp}")
                 if resp_count == 0:
                     loan_count = resp_count
                     api_resp = resp
@@ -396,6 +397,7 @@ async def handle_my_loans_flow(
                     show_all_loans,
                 )
                 loan_count = resp_count
+                
 
         else:
             # show_more_req_flag != "0" — retrieve from Redis
@@ -408,8 +410,13 @@ async def handle_my_loans_flow(
         logger.info(f"API RESPONSE........... {api_resp}")
         logger.info(f"FLAG........... {rem_flag}")
 
-        if resp_count == 0:
-            api_resp["response"] = language_data["no_loan_message"]
+        if resp_count == 0 and loan_api_failure_flag == 0:
+             
+            api_resp["response"] = language_data.get(
+                    "no_loan_message",
+                    "No loans available under this mobile number"
+                )
+
 
         if isinstance(api_resp, dict):
             if "response" not in api_resp:
@@ -423,7 +430,11 @@ async def handle_my_loans_flow(
                     isinstance(api_resp["response"], list)
                     and len(api_resp["response"]) == 0
                 ):
-                    api_resp["response"] = language_data["no_loan_message"]
+                    api_resp["response"] = language_data.get(
+                            "no_loan_message",
+                            "No loans available under this mobile number"
+                        )
+
 
         if isinstance(api_resp, str):
             api_resp = json.loads(api_resp)
@@ -481,7 +492,6 @@ async def handle_my_loans_flow(
 
         else:
             response["response"] = api_resp.get("response", "")
-
         res_type = "json" if not isinstance(response["response"], str) else "string"
 
         # ----------------------------------------------------------
@@ -494,25 +504,49 @@ async def handle_my_loans_flow(
             and response["response"] != "No Data Found"
             and entity not in NON_DICT_CONVERSION_ENTITIES
         ):
-            try:
-                response["response"], res_type = convert_to_dict_if_possible(
-                    response["response"], logger
-                )
-            except Exception as e:
-                logger.error(f"Error occurred while formatting entity response for {entity}: {e}")
-                api_resp["response"] = language_data["dict_conversion_message"]
-                status_code = 202
 
+            # ------------------------------------------------------------------
+            # CF05264 - no loan available issues
+            # Skip dictionary conversion for plain text responses.
+            # ------------------------------------------------------------------
+            if (
+                response["response"].strip().startswith("{")
+                or response["response"].strip().startswith("[")
+            ):
+                try:
+                    response["response"], res_type = convert_to_dict_if_possible(
+                        response["response"], logger
+                    )
+                except Exception as e:
+                    logger.error(
+                        f"Error occurred while formatting entity response for {entity}: {e}"
+                    )
+                    api_resp["response"] = language_data.get(
+                        "dict_conversion_message",
+                        "We encountered an issue while processing the response. Please try again."
+                    )
+                    status_code = 202
+
+            # ------------------------------------------------------------------
+            # CF05264 - no loan available issues
+            # Check object type before using .get().
+            # ------------------------------------------------------------------
             try:
-                if (
-                    response["response"].get("code") is not None
-                    and response["response"]["code"] != 200
-                ):
-                    response["response"] = response["response"]["message"]
-                    res_type = "string"
+                if isinstance(response["response"], dict):
+                    if (
+                        response["response"].get("code") is not None
+                        and response["response"]["code"] != 200
+                    ):
+                        response["response"] = response["response"]["message"]
+                        res_type = "string"
             except Exception as e:
-                logger.error(f"Error occurred while formatting entity response for {entity}: {e}")
-                api_resp["response"] = language_data["code_response_message"]
+                logger.error(
+                    f"Error occurred while formatting entity response for {entity}: {e}"
+                )
+                api_resp["response"] = language_data.get(
+                    "code_response_message",
+                    "We encountered an issue while processing the response. Please try again."
+                )
                 status_code = 204
 
         else:
@@ -530,7 +564,10 @@ async def handle_my_loans_flow(
                 res_type = fmt_res_type
             except Exception as e:
                 logger.error(f"Error occurred while formatting entity response for {entity}: {e}")
-                response["response"] = language_data["fetch_error_message"]
+                response["response"] = language_data.get(
+                    "fetch_error_message",
+                    "Sorry! We are unable to fetch your details. Please try again later."
+                )
                 status_code = 209
 
         # ----------------------------------------------------------
@@ -554,6 +591,8 @@ async def handle_my_loans_flow(
         logger.info(f"responses : {response}")
         logger.info(f"response type : {type(response)}")
 
+        res_type = "json" if not isinstance(response["response"], str) else "string"
+        logger.info(f"res_type : {res_type}")
     return {
         "response": response,
         "res_type": res_type,
@@ -606,7 +645,11 @@ def build_loan_summary_response(api_resp, language_data):
             isinstance(api_resp["response"], list)
             and len(api_resp["response"]) == 0
         ):
-            api_resp["response"] = language_data["no_loan_message"]
+           api_resp["response"] = language_data.get(
+                        "no_loan_message",
+                        "No loans available under this mobile number"
+                    )
+
 
         response["response"] = api_resp["response"]
         return response

@@ -47,9 +47,9 @@ def retrieve_data_redis(redis_client, redis_key_name, logger):
             count = redis_client.llen(redis_key_name)
             logger.info(f"Redis count....... {count}\n")
             if(count > 0):
-                if(count >= 10):
+                if(count >= 30):
                     rem_flag = 1
-                    data = append_data(logger, redis_client, redis_key_name, data, 10)
+                    data = append_data(logger, redis_client, redis_key_name, data, 30)
                 else:
                     data = append_data(logger, redis_client, redis_key_name, data, count)
                 if(data is not None and len(data) > 0 and isinstance(data[0],str)):

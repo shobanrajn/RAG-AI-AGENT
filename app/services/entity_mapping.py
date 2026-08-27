@@ -130,7 +130,7 @@ async def get_loan_details(url, mobile_no, addl_mobile_number, loan_spec_flag, e
         else:
 
             # Distinguish backend failure vs no-loan cases
-            if(status_code == 500 and resp['code'] in [500, 1013]):
+            if(status_code == 500 and resp['code'] in [500, 1013,40009]):
                 loan_api_failure_flag = 2
                 response = str(resp['message'])
 

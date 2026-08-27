@@ -6,12 +6,15 @@ WORKDIR /usr/src/app
 # Copy application code
 COPY . /usr/src/app/
 
-# Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
-RUN pip install --no-cache-dir gunicorn
-
 # Install Nginx
-RUN apt-get update && apt-get install -y nginx  vim && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends nginx vim poppler-utils && rm -rf /var/lib/apt/lists/*
+
+# Install Python dependencies
+ENV CMAKE_BUILD_PARALLEL_LEVEL=8
+RUN pip install uv
+RUN uv pip install --system --no-cache-dir -r requirements.txt
+RUN uv pip install --system --no-cache-dir gunicorn
+
 
 # Copy Nginx site config (you must provide this file in your project root)
 COPY default /etc/nginx/sites-available/default
@@ -19,7 +22,5 @@ COPY default /etc/nginx/sites-available/default
 # Expose ports
 EXPOSE 80
 
-# Start Nginx and Gunicorn with WSGI workers
-CMD service nginx start && \
-    gunicorn --bind 0.0.0.0:5000 --timeout 300 app:app
-
+CMD uvicorn app.main:app --host 0.0.0.0 --port 5000 & \
+    nginx -g 'daemon off;'

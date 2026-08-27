@@ -82,7 +82,7 @@ async def process_agent_request(
     show_all_loans = input_request.show_all_loans
 
     redis_key_name = f"{session_id}_{query_no}"
-
+    logger.info(f"incoming request: {input_request.model_dump_json()}")
     # =========================================================
     # SPAM CHECK — timestamp must be passed in
     # =========================================================
@@ -96,7 +96,7 @@ async def process_agent_request(
     if is_spam:
         response = {
             "message": {
-                "response": language_data["spam_message"],
+                "response": language_data.get("spam_message", "Being spammed"),
                 "type": "string",
                 "retry_flag": 0,
                 "loan_api_failure_flag": 0,
@@ -132,7 +132,10 @@ async def process_agent_request(
     if not (mobile_num_detection_flag or mobile_num_validation_flag):
         # Mobile number mismatch — short-circuit
         response_body = {
-            "response": language_data["mobile_mismatch_message"],
+            "response": language_data.get(
+                "mobile_mismatch_message",
+                "The entered mobile number does not match our records."
+            ),
             "type": "string",
             "retry_flag": 0,
             "loan_api_failure_flag": 0,
@@ -182,7 +185,10 @@ async def process_agent_request(
 
     if str(query_input).lower() == "hi":
         response_body = {
-        "response": language_data["greeting_message"],
+        "response": language_data.get(
+            "greeting_message",
+            "Hello! How can I help you today?"
+        ),
         "counter_flag_agg": 0,
         "intent_dict": {
             str(k): v
