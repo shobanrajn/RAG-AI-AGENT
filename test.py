@@ -13,14 +13,63 @@ import json
 #   "otp_verified": "1"
 # }
 
-url = "http://127.0.0.1:80/v1/agent"
+url = "http://127.0.0.1:8000/v1/connector"
 
 headers = {
   'Content-Type': 'application/json',
-  'Authorization': 'Basic YjUxMmQ5N2U3Y2JmOTdjMjczZTRkYjA3M2JiYjU0N2FhNjVhODQ1ODkyMjdmOGYzZDllNGE3MmI5MzcyYTI0ZDowMDhjNzAzOTJlM2FiZmJkMGZhNDdiYmMyZWQ5NmFhOTliZDQ5ZTE1OTcyN2ZjYmEwZjJlNmFiZWIzYTlkNjAx'
+  'Authorization': 'Basic MWY4NDM4OGIxZjViZWVmMmJjMjE1YzkyOGYxOWY1YjMxNzc4NzAzYWMzOGY4YjMwZDIxZGEwMGJmZjZmMmZmYTpjZTUzOTdiZDY1MWYxOGY0M2ZkMzZiZGNlMWFiYzQwNTgyNDQ1MjVhMDg0MjA2ZGI1YTg1NGI2Mjk3NWUwZWM4'
+}
+
+payload = json.dumps({"message": "show payout greater than 3000", "vendor": "9876543210"})
+
+response = requests.request("POST", url, headers=headers, data=payload)
+print(response.text)
+input("enter")
+
+url = "http://127.0.0.1:8000/v1/agent"
+
+headers = {
+  'Content-Type': 'application/json',
+  'Authorization': 'Basic MWY4NDM4OGIxZjViZWVmMmJjMjE1YzkyOGYxOWY1YjMxNzc4NzAzYWMzOGY4YjMwZDIxZGEwMGJmZjZmMmZmYTpjZTUzOTdiZDY1MWYxOGY0M2ZkMzZiZGNlMWFiYzQwNTgyNDQ1MjVhMDg0MjA2ZGI1YTg1NGI2Mjk3NWUwZWM4'
 }
 
 session_id = "9182959978_2025072509125123"
+
+query_input =  'hi'
+
+payload = json.dumps({'user_request':'', 
+                      'query_input': query_input, 
+                      'session_id': session_id, 
+                      'mobile_no': '9182089282', 
+                      'show_more_req_flag': '0', 
+                      'query_no': '0', 
+                      'user_text_flag': '1', 
+                      'otp_verified': '0'})
+
+
+response = requests.request("POST", url, headers=headers, data=payload)
+print(response.text)
+input("enter")
+
+
+query_input = "products of chola"
+
+payload = json.dumps({
+    'user_request':'About Chola', 
+    'query_input': query_input, 
+    'session_id': session_id, 
+    'mobile_no': '9597689557', 
+    'show_more_req_flag': '0', 
+    'query_no': '0', 
+    'user_text_flag': '1',
+    'otp_verified': '1'})
+
+
+response = requests.request("POST", url, headers=headers, data=payload)
+print(response.text)
+
+input("enter")
+
 
 query_input =  'show my loan details'
 
@@ -98,21 +147,7 @@ response = requests.request("POST", url, headers=headers, data=payload)
 print(response.text)
 
 
-query_input =  'hi'
 
-payload = json.dumps({'user_request':'', 
-                      'query_input': query_input, 
-                      'session_id': session_id, 
-                      'mobile_no': '9182089282', 
-                      'show_more_req_flag': '0', 
-                      'query_no': '0', 
-                      'user_text_flag': '1', 
-                      'otp_verified': '0'})
-
-
-response = requests.request("POST", url, headers=headers, data=payload)
-print(response.text)
-input("enter")
 
 
 
@@ -175,23 +210,7 @@ input("enter")
 
 
 
-query_input = "products of chola"
 
-payload = json.dumps({
-    'user_request':'About Chola', 
-    'query_input': query_input, 
-    'session_id': session_id, 
-    'mobile_no': '9597689557', 
-    'show_more_req_flag': '0', 
-    'query_no': '0', 
-    'user_text_flag': '1',
-    'otp_verified': '1'})
-
-
-response = requests.request("POST", url, headers=headers, data=payload)
-print(response.text)
-
-input("enter")
 
 
 

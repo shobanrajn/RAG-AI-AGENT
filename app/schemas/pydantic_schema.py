@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from typing import Optional, Union
 
 class AgentRequest(BaseModel):
@@ -69,3 +69,99 @@ class HRAgentResult(BaseModel):
 class HRAgentResponse(BaseModel):
     success: bool
     response: HRAgentResult
+
+
+class QueryRequest(BaseModel):
+    message: str
+    vendor: str  # Mandatory field. Vendor identifier
+    vendor_id: Optional[str] = ""  # Vendor identifier (optional, defaults to empty string)
+    vertical: Optional[str] = "LAP"  # Optional field. Valid values: LAP (Loan Against Property), HL (Home Loan), SME (Small and Medium Enterprise). Defaults to LAP.
+
+    @field_validator('vertical', mode='before')
+    @classmethod
+    def validate_vertical(cls, v):
+        """
+        Validate that vertical is one of the allowed values.
+        Uses LAP as default if not provided.
+        """
+        valid_verticals = ["LAP", "HL", "SME"]
+        
+        # Use default value if None is provided
+        if v is None:
+            return "LAP"
+        
+        v_str = str(v).upper().strip()
+        
+        if not v_str:
+            return "LAP"
+        
+        if v_str not in valid_verticals:
+            raise ValueError(f"Invalid vertical '{v}'. Must be one of: {', '.join(valid_verticals)}")
+        
+        return v_str
+
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "message": "Show me only pending payouts for January 2026",
+                    "vendor": "9876543210",
+                    "vertical": "LAP",
+                },
+                {
+                    "message": "What is the payout status for customer Ravi in Jan 2026?",
+                    "vendor": "9876543210",
+                    "vertical": "HL",
+                },
+                {
+                    "message": "Show loans above 50000 that are still pending",
+                    "vendor": "9876543210",
+                    "vertical": "SME",
+                },
+                {
+                    "message": "I haven't received my payment for last month, please help",
+                    "vendor": "9876543210",
+                    "vertical": "LAP",
+                },
+            ]
+        }
+    }
+
+
+class QueryResponse(BaseModel):
+    intent: Optional[str] = None
+    message: Optional[str] = None
+    answer: Optional[str] = None
+    reasoning: Optional[str] = None
+    filters_applied: Optional[dict] = None
+    filtered_response: Optional[dict] = None
+    raw_api_response: Optional[dict] = None
+
+
+# Image Extract Request Parameter
+class ImageExtractRequest(BaseModel):
+    base64_pdf: str
+
+# Image Extract Request Parameter
+class ImageExtractResponse(BaseModel):
+    base64_img: str
+    file_format: str
+
+class NameMatchRequest(BaseModel):
+    pan_name: str
+    aadhar_name: str
+    threshold: float = 0.7
+
+class NameMatchResponse(BaseModel):
+    matched_flag: bool
+    similarity_score: int
+    pan_name_normalized: str
+    aadhar_name_normalized: str
+
+class ImageMergeRequest(BaseModel):
+    first_image: str
+    second_image: Optional[str] = None
+
+class ImageMergeResponse(BaseModel):
+    merged_image: str  # S3 presigned URL for merged/converted image
+
