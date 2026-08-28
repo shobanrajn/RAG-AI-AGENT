@@ -24,7 +24,7 @@ async def handle_faq_flow(
     retry_flag = 0
     faq_provider = os.getenv("FAQ_PROVIDER", "bedrock").strip().lower()
 
-     if faq_provider == "gemini":
+    if faq_provider == "gemini":
         llm_response = await invoke_gemini_faq_agent(query=query_input, session_id=session_id)
     else:
         llm_response = invoke_faq_agent(query_input, session_id)
