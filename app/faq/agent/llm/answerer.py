@@ -1,6 +1,9 @@
 import asyncio
 
-from ...config import faq_log, CONTEXT_MAX_CHAR
+from app.core.config import settings
+from app.faq.logging import faq_log
+
+CONTEXT_MAX_CHAR = settings.get("CONTEXT_MAX_CHAR", 10000, int)
 from ...variables import SYSTEM_PROMPT
 from .client import call_gemini_llm
 

@@ -3,23 +3,20 @@ from google.genai import types
 from google.oauth2 import service_account
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 
-from ..config import (
-    GEMINI_EMBEDDING_MODEL, GEMINI_MODEL,
-    VERTEX_PROJECT_ID, VERTEX_LOCATION, VERTEX_SERVICE_ACCOUNT_JSON,
-)
-from ..db import store_chunks
-from ..logging import faq_log
+from app.core.config import settings
+from app.faq.logging import faq_log
+from app.db.faq_chat_pg import store_chunks
 from .stop import is_stop_requested
 
 
 def _build_genai_client() -> genai.Client:
-    if VERTEX_SERVICE_ACCOUNT_JSON:
+    if settings.get("VERTEX_SERVICE_ACCOUNT_JSON", ""):
         creds = service_account.Credentials.from_service_account_file(
-            VERTEX_SERVICE_ACCOUNT_JSON,
+            settings.VERTEX_SERVICE_ACCOUNT_JSON,
             scopes=["https://www.googleapis.com/auth/cloud-platform"],
         )
-        return genai.Client(vertexai=True, project=VERTEX_PROJECT_ID, location=VERTEX_LOCATION, credentials=creds)
-    return genai.Client(vertexai=True, project=VERTEX_PROJECT_ID, location=VERTEX_LOCATION)
+        return genai.Client(vertexai=True, project=settings.VERTEX_PROJECT_ID, location=settings.VERTEX_LOCATION, credentials=creds)
+    return genai.Client(vertexai=True, project=settings.VERTEX_PROJECT_ID, location=settings.VERTEX_LOCATION)
 
 
 @retry(
@@ -30,11 +27,11 @@ def _build_genai_client() -> genai.Client:
 def get_embedding(text: str) -> tuple[list, int]:
     client = _build_genai_client()
     result = client.models.embed_content(
-        model=GEMINI_EMBEDDING_MODEL,
+        model=settings.GEMINI_EMBEDDING_MODEL,
         contents=text,
         config=types.EmbedContentConfig(output_dimensionality=3072),
     )
-    token_count = client.models.count_tokens(model=GEMINI_MODEL, contents=text).total_tokens or 0
+    token_count = client.models.count_tokens(model=settings.GEMINI_MODEL, contents=text).total_tokens or 0
     return result.embeddings[0].values, token_count
 
 

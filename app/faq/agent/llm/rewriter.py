@@ -2,7 +2,7 @@ import asyncio
 import json
 import re
 
-from ...config import faq_log
+from app.faq.logging import faq_log
 from ...variables import REWRITE_SYSTEM_PROMPT
 from .client import call_gemini_llm, EMPTY_USAGE
 

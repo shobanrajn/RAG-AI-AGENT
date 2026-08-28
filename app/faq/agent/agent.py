@@ -2,12 +2,15 @@ import asyncio
 import time
 
 from app.core.exceptions import AppException
-from ..config import TOP_K
-from ..db import save_message, get_history
-from ..logging import faq_log
+from app.core.config import settings
+from app.faq.logging import faq_log
+from app.db.faq_chat_pg import save_message, get_history
+from app.db.faq_token_mongo import save_faq_token_usage
 from .utils.token import log_token_usage, usage_count
 from .retrieval import get_embeddings_batch, retrieve_semantic_chunks, merge_and_rerank
 from .llm import rewrite_query, generate_answer
+
+TOP_K = settings.get("TOP_K", 40, int)
 
 async def invoke_faq_agent(
     query: str,
@@ -51,6 +54,14 @@ async def invoke_faq_agent(
             save_message(session_id, "assistant", answer)
             faq_log.info(f"[SESSION: {session_id}] {intent.upper()} SHORT-CIRCUIT (lang={language})")
             log_token_usage(session_id, intent, rewrite_usage, answer_usage, elapsed_s=rewrite_elapsed)
+            try:
+                await save_faq_token_usage(
+                    session_id,
+                    usage_count(rewrite_usage, "promptTokenCount") + usage_count(answer_usage, "promptTokenCount"),
+                    usage_count(rewrite_usage, "candidatesTokenCount") + usage_count(answer_usage, "candidatesTokenCount"),
+                )
+            except Exception:
+                pass
             return {"result_text": answer, "label": "Rag-Agent"}
 
         # Step 2: Multi-Query + Embed + Retrieve
@@ -139,6 +150,10 @@ async def invoke_faq_agent(
         save_message(session_id, "assistant", answer)
 
         log_token_usage(session_id, intent, rewrite_usage, answer_usage, llm_elapsed)
+        try:
+            await save_faq_token_usage(session_id, total_input, total_output)
+        except Exception:
+            pass
 
         faq_log.info(f"[SESSION: {session_id}] RESPONSE COMPLETE - Status: 200")
         faq_log.info("=" * 100)

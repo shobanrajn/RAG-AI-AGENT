@@ -3,12 +3,9 @@ from google import genai
 from google.genai import types
 from google.oauth2 import service_account
 
-from ...config import (
-    faq_log,
-    GEMINI_EMBEDDING_MODEL,
-    VERTEX_PROJECT_ID, VERTEX_LOCATION, VERTEX_SERVICE_ACCOUNT_JSON,
-)
-from ...db import get_pg_table, get_pg_pool, get_pg_vector_dim
+from app.core.config import settings
+from app.faq.logging import faq_log
+from app.db.faq_chat_pg import get_pg_table, get_pg_pool, get_pg_vector_dim
 from ..utils.filters import is_noisy_chunk
 
 # ──────────────────────────────────────────────
@@ -21,14 +18,14 @@ def get_embedding_client() -> genai.Client:
     global embedding_client
     if embedding_client is not None:
         return embedding_client
-    if VERTEX_SERVICE_ACCOUNT_JSON:
+    if settings.get("VERTEX_SERVICE_ACCOUNT_JSON", ""):
         creds = service_account.Credentials.from_service_account_file(
-            VERTEX_SERVICE_ACCOUNT_JSON,
+            settings.VERTEX_SERVICE_ACCOUNT_JSON,
             scopes=["https://www.googleapis.com/auth/cloud-platform"],
         )
-        embedding_client = genai.Client(vertexai=True, project=VERTEX_PROJECT_ID, location=VERTEX_LOCATION, credentials=creds)
+        embedding_client = genai.Client(vertexai=True, project=settings.VERTEX_PROJECT_ID, location=settings.VERTEX_LOCATION, credentials=creds)
     else:
-        embedding_client = genai.Client(vertexai=True, project=VERTEX_PROJECT_ID, location=VERTEX_LOCATION)
+        embedding_client = genai.Client(vertexai=True, project=settings.VERTEX_PROJECT_ID, location=settings.VERTEX_LOCATION)
     return embedding_client
 
 
@@ -39,7 +36,7 @@ def get_embedding_client() -> genai.Client:
 def get_gemini_embeddings_batch(texts: list[str]) -> list[list]:
     client = get_embedding_client()
     result = client.models.embed_content(
-        model=GEMINI_EMBEDDING_MODEL,
+        model=settings.GEMINI_EMBEDDING_MODEL,
         contents=texts,
         config=types.EmbedContentConfig(output_dimensionality=3072),
     )

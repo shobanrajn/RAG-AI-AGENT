@@ -1,12 +1,16 @@
 from datetime import datetime
-from ..config import faq_log, SCRAPER_URLS, FOOTER_BASE_URL, FOOTER_TOPICS, PG_FAQ_TABLE, GEMINI_EMBEDDING_MODEL
+from app.core.config import settings
+from app.faq.logging import faq_log
 from .stop import is_stop_requested
 from .footer import scrape_page, scrape_footer_topics
 from .embedder import store_embeddings
 from .scraper_utils import save_debug_file
 
-
 def run() -> None:
+    scraper_urls = [u.strip() for u in settings.get("SCRAPER_URLS", "").split(",") if u.strip()]
+    footer_base_url = settings.get("FOOTER_BASE_URL", "")
+    footer_topics = [t.strip() for t in settings.get("FOOTER_TOPICS", "").split(",") if t.strip()]
+
     faq_log.info("[SCRAPER] Starting scraper run")
 
     seen_texts: set = set()
@@ -18,17 +22,17 @@ def run() -> None:
                 seen_texts.add(chunk["text"])
                 all_chunks.append(chunk)
 
-    if SCRAPER_URLS:
-        faq_log.info("[SCRAPER] Scraping %d direct URL(s)", len(SCRAPER_URLS))
-        for url in SCRAPER_URLS:
+    if scraper_urls:
+        faq_log.info("[SCRAPER] Scraping %d direct URL(s)", len(scraper_urls))
+        for url in scraper_urls:
             if is_stop_requested():
                 faq_log.warning("[SCRAPER] Stop requested — halting scraping")
                 return
             add_chunks(scrape_page(url))
 
-    if FOOTER_BASE_URL and FOOTER_TOPICS:
-        faq_log.info("[SCRAPER] Scraping footer topics: %s", FOOTER_TOPICS)
-        add_chunks(scrape_footer_topics(FOOTER_BASE_URL, FOOTER_TOPICS))
+    if footer_base_url and footer_topics:
+        faq_log.info("[SCRAPER] Scraping footer topics: %s", footer_topics)
+        add_chunks(scrape_footer_topics(footer_base_url, footer_topics))
 
     if not all_chunks:
         faq_log.warning("[SCRAPER] No chunks extracted. Check SCRAPER_URLS or FOOTER_BASE_URL in .env")
@@ -38,11 +42,11 @@ def run() -> None:
     save_debug_file(f"summary_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json", {
         "timestamp": datetime.now().isoformat(),
         "total_chunks": len(all_chunks),
-        "scraper_urls": SCRAPER_URLS,
-        "footer_base_url": FOOTER_BASE_URL,
-        "footer_topics": FOOTER_TOPICS,
-        "table": PG_FAQ_TABLE,
-        "embedding_model": GEMINI_EMBEDDING_MODEL,
+        "scraper_urls": scraper_urls,
+        "footer_base_url": footer_base_url,
+        "footer_topics": footer_topics,
+        "table": settings.get("PG_FAQ_TABLE", "faq"),
+        "embedding_model": settings.GEMINI_EMBEDDING_MODEL,
     })
 
     store_embeddings(all_chunks)

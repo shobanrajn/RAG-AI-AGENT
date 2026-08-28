@@ -2,7 +2,7 @@ from urllib.parse import urljoin
 
 from bs4 import BeautifulSoup
 
-from config import faq_log
+from app.faq.logging import faq_log
 from scraper.fetcher import fetch_url, clean_html, html_to_markdown
 from app.faq.scraper.scraper_utils import is_scrapable_url, save_debug_file
 from scraper.parser import parse_sections, sections_to_chunks

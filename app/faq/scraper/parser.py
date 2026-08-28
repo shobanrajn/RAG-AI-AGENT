@@ -1,5 +1,5 @@
 import re
-from config import CHUNK_SIZE
+from app.core.config import settings
 
 # ──────────────────────────────────────────────
 # Section helpers
@@ -144,7 +144,7 @@ def split_into_chunks(text: str, url: str, full_title: str, topic: str, link_tex
     current = ""
     for word in text.split():
         candidate = f"{current} {word}".strip()
-        if len(candidate) > CHUNK_SIZE:
+        if len(candidate) > settings.get("CHUNK_SIZE", 600, int):
             if current and current not in seen:
                 seen.add(current)
                 chunks.append({"url": url, "text": current, "section": full_title, "topic": topic, "link_text": link_text})

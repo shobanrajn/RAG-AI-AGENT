@@ -2,11 +2,8 @@ import re
 import psycopg2
 import psycopg2.pool
 
-from .config import (
-    PG_HOST, PG_PORT, PG_DB, PG_USER, PG_PASSWORD,
-    PG_FAQ_TABLE, PG_CHAT_TABLE,
-)
-from .logging import faq_log
+from app.core.config import settings
+from app.faq.logging import faq_log
 
 # ──────────────────────────────────────────────
 # Connection Pool
@@ -19,8 +16,8 @@ def get_pg_pool() -> psycopg2.pool.ThreadedConnectionPool:
     if _pg_pool is None:
         _pg_pool = psycopg2.pool.ThreadedConnectionPool(
             minconn=1, maxconn=10,
-            host=PG_HOST, port=PG_PORT,
-            dbname=PG_DB, user=PG_USER, password=PG_PASSWORD,
+            host=settings.PG_HOST, port=settings.PG_PORT,
+            dbname=settings.PG_DB, user=settings.PG_USER, password=settings.PG_PASSWORD,
         )
     return _pg_pool
 
@@ -36,7 +33,7 @@ def ensure_faq_table() -> None:
         with conn.cursor() as cur:
             cur.execute("CREATE EXTENSION IF NOT EXISTS vector;")
             cur.execute(f"""
-                CREATE TABLE IF NOT EXISTS {PG_FAQ_TABLE} (
+                CREATE TABLE IF NOT EXISTS {settings.get('PG_FAQ_TABLE', 'faq')} (
                     id         SERIAL PRIMARY KEY,
                     url        TEXT,
                     chunk_text TEXT,
@@ -47,7 +44,7 @@ def ensure_faq_table() -> None:
                 );
             """)
             conn.commit()
-        faq_log.info("[DB] faq table '%s' ready", PG_FAQ_TABLE)
+        faq_log.info("[DB] faq table '%s' ready", settings.get('PG_FAQ_TABLE', 'faq'))
     except Exception as e:
         faq_log.error("[DB] Failed to create faq table: %s", e)
     finally:
@@ -60,13 +57,13 @@ def store_chunks(all_chunks: list) -> None:
     try:
         with conn.cursor() as cur:
             urls_to_update = list({chunk["url"] for chunk in all_chunks})
-            cur.execute(f"DELETE FROM {PG_FAQ_TABLE} WHERE url = ANY(%s)", (urls_to_update,))
+            cur.execute(f"DELETE FROM {settings.get('PG_FAQ_TABLE', 'faq')} WHERE url = ANY(%s)", (urls_to_update,))
             faq_log.info("[DB] Deleted old chunks for %d URL(s)", len(urls_to_update))
             conn.commit()
 
             for chunk in all_chunks:
                 cur.execute(
-                    f"INSERT INTO {PG_FAQ_TABLE} (url, chunk_text, section, topic, link_text, embedding) VALUES (%s, %s, %s, %s, %s, %s)",
+                    f"INSERT INTO {settings.get('PG_FAQ_TABLE', 'faq')} (url, chunk_text, section, topic, link_text, embedding) VALUES (%s, %s, %s, %s, %s, %s)",
                     (chunk["url"], chunk["text"], chunk.get("section", ""), chunk.get("topic", ""), chunk.get("link_text", ""), chunk["embedding"]),
                 )
             conn.commit()
@@ -83,7 +80,7 @@ def store_chunks(all_chunks: list) -> None:
 # ══════════════════════════════════════════════
 
 def get_pg_table() -> str:
-    table = (PG_FAQ_TABLE or "").strip()
+    table = (settings.get("PG_FAQ_TABLE", "faq") or "").strip()
     if not table:
         raise ValueError("PG_FAQ_TABLE is not configured.")
     if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", table):
@@ -108,11 +105,11 @@ def ensure_chat_table() -> None:
     conn = pool.getconn()
     try:
         with conn.cursor() as cur:
-            cur.execute("SELECT to_regclass(%s)", (PG_CHAT_TABLE,))
+            cur.execute("SELECT to_regclass(%s)", (settings.get("PG_CHAT_TABLE", "chat_history"),))
             if cur.fetchone()[0] is not None:
                 return
             cur.execute(f"""
-                CREATE TABLE IF NOT EXISTS {PG_CHAT_TABLE} (
+                CREATE TABLE IF NOT EXISTS {settings.get('PG_CHAT_TABLE', 'chat_history')} (
                     id         SERIAL PRIMARY KEY,
                     session_id TEXT NOT NULL,
                     role       TEXT NOT NULL,
@@ -121,7 +118,7 @@ def ensure_chat_table() -> None:
                 );
             """)
             conn.commit()
-        faq_log.info("[DB] chat table '%s' ready", PG_CHAT_TABLE)
+        faq_log.info("[DB] chat table '%s' ready", settings.get('PG_CHAT_TABLE', 'chat_history'))
     except Exception as e:
         faq_log.error("[DB] Failed to create chat table: %s", e)
     finally:
@@ -134,7 +131,7 @@ def save_message(session_id: str, role: str, message: str) -> None:
     try:
         with conn.cursor() as cur:
             cur.execute(
-                f"INSERT INTO {PG_CHAT_TABLE} (session_id, role, message) VALUES (%s, %s, %s)",
+                f"INSERT INTO {settings.get('PG_CHAT_TABLE', 'chat_history')} (session_id, role, message) VALUES (%s, %s, %s)",
                 (session_id, role, message),
             )
             conn.commit()
@@ -150,7 +147,7 @@ def get_history(session_id: str) -> list:
     try:
         with conn.cursor() as cur:
             cur.execute(
-                f"SELECT role, message FROM {PG_CHAT_TABLE} WHERE session_id = %s ORDER BY id DESC LIMIT 6",
+                f"SELECT role, message FROM {settings.get('PG_CHAT_TABLE', 'chat_history')} WHERE session_id = %s ORDER BY id DESC LIMIT 6",
                 (session_id,)
             )
             rows = cur.fetchall()

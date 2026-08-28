@@ -3,24 +3,21 @@ from google import genai
 from google.genai import types
 from google.oauth2 import service_account
 
-from ...config import (
-    faq_log,
-    GEMINI_MODEL,
-    VERTEX_PROJECT_ID, VERTEX_LOCATION, VERTEX_SERVICE_ACCOUNT_JSON,
-)
+from app.core.config import settings
+from app.faq.logging import faq_log
 from ...variables import SYSTEM_PROMPT
 
 # ──────────────────────────────────────────────
 # Gemini Client
 # ──────────────────────────────────────────────
 def get_genai_client() -> genai.Client:
-    if VERTEX_SERVICE_ACCOUNT_JSON:
+    if settings.get("VERTEX_SERVICE_ACCOUNT_JSON", ""):
         creds = service_account.Credentials.from_service_account_file(
-            VERTEX_SERVICE_ACCOUNT_JSON,
+            settings.VERTEX_SERVICE_ACCOUNT_JSON,
             scopes=["https://www.googleapis.com/auth/cloud-platform"],
         )
-        return genai.Client(vertexai=True, project=VERTEX_PROJECT_ID, location=VERTEX_LOCATION, credentials=creds)
-    return genai.Client(vertexai=True, project=VERTEX_PROJECT_ID, location=VERTEX_LOCATION)
+        return genai.Client(vertexai=True, project=settings.VERTEX_PROJECT_ID, location=settings.VERTEX_LOCATION, credentials=creds)
+    return genai.Client(vertexai=True, project=settings.VERTEX_PROJECT_ID, location=settings.VERTEX_LOCATION)
 
 
 # ──────────────────────────────────────────────
@@ -39,7 +36,7 @@ def get_answer_cache(client) -> str | None:
         return answer_cache_name
     try:
         cached = client.caches.create(
-            model=GEMINI_MODEL,
+            model=settings.GEMINI_MODEL,
             config=types.CreateCachedContentConfig(
                 system_instruction=SYSTEM_PROMPT,
                 ttl=f"{CACHE_TTL_SECONDS}s",
@@ -92,7 +89,7 @@ def call_gemini_llm(messages: list, max_tokens: int = 8192, call_name: str = "un
             system_instruction=None if cache_name else (system_text or None),
             labels={"agent": "rag-agent"},
         )
-        response = client.models.generate_content(model=GEMINI_MODEL, contents=contents, config=config)
+        response = client.models.generate_content(model=settings.GEMINI_MODEL, contents=contents, config=config)
         elapsed = time.perf_counter() - started_at
         content = response.text.strip() if response.text else ""
         um = response.usage_metadata

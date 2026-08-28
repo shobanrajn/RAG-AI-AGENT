@@ -1,7 +1,9 @@
 import math
 from sentence_transformers import CrossEncoder
 
-from ...config import faq_log, RERANKER_PATH, RERANK_SCORE_THRESHOLD, RERANK_POOL_SIZE, get_nlp
+from app.core.config import settings
+from app.faq.logging import faq_log
+from app.faq.setup import get_nlp
 
 # ──────────────────────────────────────────────
 # MS-Marco Reranker
@@ -13,8 +15,8 @@ def load_reranker() -> CrossEncoder:
     global reranker
     if reranker is not None:
         return reranker
-    reranker = CrossEncoder(RERANKER_PATH, local_files_only=True)
-    faq_log.info("[RERANKER] MS-Marco reranker loaded from %s", RERANKER_PATH)
+    reranker = CrossEncoder(settings.RERANKER_PATH, local_files_only=True)
+    faq_log.info("[RERANKER] MS-Marco reranker loaded from %s", settings.RERANKER_PATH)
     return reranker
 
 
@@ -28,8 +30,8 @@ def rerank(query: str, chunks: list, top_k: int) -> list:
         for i, chunk in enumerate(chunks):
             chunk["rerank_score"] = float(scores[i])
         ranked   = sorted(chunks, key=lambda x: x["rerank_score"], reverse=True)
-        filtered = [c for c in ranked if c["rerank_score"] >= RERANK_SCORE_THRESHOLD]
-        faq_log.debug("[RERANKER] threshold=%.2f | before=%d | after=%d", RERANK_SCORE_THRESHOLD, len(ranked), len(filtered))
+        filtered = [c for c in ranked if c["rerank_score"] >= settings.get("RERANK_SCORE_THRESHOLD", -1.0, float)]
+        faq_log.debug("[RERANKER] threshold=%.2f | before=%d | after=%d", settings.get("RERANK_SCORE_THRESHOLD", -1.0, float), len(ranked), len(filtered))
         return filtered[:top_k]
     except Exception as e:
         faq_log.warning("[RERANKER] Reranker failed (%s) — falling back to RRF order", e)
@@ -96,5 +98,5 @@ def merge_and_rerank(semantic: list, query: str) -> list:
         c["rrf_score"] = 0.7 * (1 / (60 + sem_rank.get(t, len(candidates)))) + 0.3 * (1 / (60 + bm25_rank.get(t, len(candidates))))
 
     fused = sorted(candidates, key=lambda c: c["rrf_score"], reverse=True)
-    top   = fused[:min(RERANK_POOL_SIZE, len(fused))]
+    top   = fused[:min(settings.get("RERANK_POOL_SIZE", 40, int), len(fused))]
     return rerank(query, top, top_k=len(top))

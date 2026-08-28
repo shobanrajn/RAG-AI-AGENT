@@ -3,7 +3,8 @@ import json
 import hashlib
 from urllib.parse import urlparse
 
-from config import faq_log, DEBUG_MODE, DEBUG_DIR
+from app.core.config import settings
+from app.faq.logging import faq_log
 
 SKIP_EXTENSIONS = (".pdf", ".jpg", ".png", ".svg", ".mp4", ".zip")
 
@@ -23,9 +24,9 @@ def is_scrapable_url(url: str, base_url: str) -> bool:
 
 
 def save_debug_file(filename: str, content) -> None:
-    if not DEBUG_MODE:
+    if not settings.get("DEBUG_MODE", "false").lower() == "true":
         return
-    debug_dir = os.path.realpath(DEBUG_DIR)
+    debug_dir = os.path.realpath(settings.get("DEBUG_DIR", "./scraper_debug"))
     os.makedirs(debug_dir, exist_ok=True)
     filepath = os.path.join(debug_dir, os.path.basename(filename))
     with open(filepath, "w", encoding="utf-8") as f:
