@@ -1,4 +1,6 @@
 # app/services/faq_service.py
+import os
+from app.faq.agent import invoke_faq_agent as invoke_gemini_faq_agent
 
 from app.services.agent_runtime import invoke_faq_agent
 
@@ -20,8 +22,12 @@ async def handle_faq_flow(
     """
 
     retry_flag = 0
+    faq_provider = os.getenv("FAQ_PROVIDER", "bedrock").strip().lower()
 
-    llm_response = invoke_faq_agent(query_input, session_id)
+     if faq_provider == "gemini":
+        llm_response = await invoke_gemini_faq_agent(query=query_input, session_id=session_id)
+    else:
+        llm_response = invoke_faq_agent(query_input, session_id)
 
     logger.info(f"faq response : {llm_response}")
     logger.info(f"faq response type : {type(llm_response)}")
@@ -36,5 +42,6 @@ async def handle_faq_flow(
     return {
         "response": response,
         "res_type": res_type,
+        "retry_flag": 0,
         "retry_flag": retry_flag,
     }
