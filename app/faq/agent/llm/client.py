@@ -1,7 +1,6 @@
 import time
 from google import genai
 from google.genai import types
-from google.oauth2 import service_account
 
 from app.core.config import settings
 from app.faq.logging import faq_log
@@ -11,12 +10,6 @@ from ...variables import SYSTEM_PROMPT
 # Gemini Client
 # ──────────────────────────────────────────────
 def get_genai_client() -> genai.Client:
-    if settings.get("VERTEX_SERVICE_ACCOUNT_JSON", ""):
-        creds = service_account.Credentials.from_service_account_file(
-            settings.VERTEX_SERVICE_ACCOUNT_JSON,
-            scopes=["https://www.googleapis.com/auth/cloud-platform"],
-        )
-        return genai.Client(vertexai=True, project=settings.VERTEX_PROJECT_ID, location=settings.VERTEX_LOCATION, credentials=creds)
     return genai.Client(vertexai=True, project=settings.VERTEX_PROJECT_ID, location=settings.VERTEX_LOCATION)
 
 
@@ -54,7 +47,7 @@ def get_answer_cache(client) -> str | None:
 # ──────────────────────────────────────────────
 # Core Gemini Call
 # ──────────────────────────────────────────────
-EMPTY_USAGE: dict = {"promptTokenCount": 0, "candidatesTokenCount": 0, "totalTokenCount": 0, "cachedContentTokenCount": 0}
+EMPTY_USAGE: dict = {"promptTokenCount": 0, "candidatesTokenCount": 0, "totalTokenCount": 0, "cachedContentTokenCount": 0, "thoughtsTokenCount": 0}
 
 
 def call_gemini_llm(messages: list, max_tokens: int = 8192, call_name: str = "unknown") -> tuple[str, dict]:
@@ -98,12 +91,13 @@ def call_gemini_llm(messages: list, max_tokens: int = 8192, call_name: str = "un
             "candidatesTokenCount":    getattr(um, "candidates_token_count", 0) or 0,
             "totalTokenCount":         getattr(um, "total_token_count", 0) or 0,
             "cachedContentTokenCount": getattr(um, "cached_content_token_count", 0) or 0,
+            "thoughtsTokenCount":      getattr(um, "thoughts_token_count", 0) or 0,
         }
         finish_reason = response.candidates[0].finish_reason.name if response.candidates else "n/a"
         faq_log.debug(
-            "[GEMINI] RESPONSE | call=%s | wall=%.2fs | finish=%s | prompt=%s | output=%s | cached=%s",
+            "[GEMINI] RESPONSE | call=%s | wall=%.2fs | finish=%s | prompt=%s | output=%s | cached=%s | thinking=%s",
             call_name, elapsed, finish_reason,
-            usage.get("promptTokenCount"), usage.get("candidatesTokenCount"), usage.get("cachedContentTokenCount"),
+            usage.get("promptTokenCount"), usage.get("candidatesTokenCount"), usage.get("cachedContentTokenCount"), usage.get("thoughtsTokenCount"),
         )
         return content or "Sorry, I could not generate a response right now.", usage
     except Exception as e:

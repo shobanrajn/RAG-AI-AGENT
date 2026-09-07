@@ -59,6 +59,8 @@ async def invoke_faq_agent(
                     session_id,
                     usage_count(rewrite_usage, "promptTokenCount") + usage_count(answer_usage, "promptTokenCount"),
                     usage_count(rewrite_usage, "candidatesTokenCount") + usage_count(answer_usage, "candidatesTokenCount"),
+                    cached_tokens=usage_count(answer_usage, "cachedContentTokenCount"),
+                    thinking_tokens=usage_count(rewrite_usage, "thoughtsTokenCount") + usage_count(answer_usage, "thoughtsTokenCount"),
                 )
             except Exception:
                 pass
@@ -66,7 +68,7 @@ async def invoke_faq_agent(
 
         # Step 2: Multi-Query + Embed + Retrieve
         all_queries = []
-        for candidate_query in [search_query] + variations:
+        for candidate_query in [search_query] + variations:      
             if candidate_query and candidate_query not in all_queries:
                 all_queries.append(candidate_query)
         faq_log.debug(f"[SESSION: {session_id}]   queries={all_queries}")
@@ -126,6 +128,7 @@ async def invoke_faq_agent(
         answer_prompt     = usage_count(answer_usage, "promptTokenCount")
         answer_output     = usage_count(answer_usage, "candidatesTokenCount")
         cached_tokens     = usage_count(answer_usage, "cachedContentTokenCount")
+        thinking_tokens   = usage_count(rewrite_usage, "thoughtsTokenCount") + usage_count(answer_usage, "thoughtsTokenCount")
         total_input       = rewrite_prompt + answer_prompt
         total_output      = rewrite_output + answer_output
         grand_total       = total_input + total_output
@@ -134,11 +137,13 @@ async def invoke_faq_agent(
             "[SESSION: %s] TOKEN USAGE | "
             "rewrite=(%d in / %d out) | "
             "answer=(%d in / %d out, cached=%s) | "
+            "thinking=%d | "
             "TOTAL input=%d output=%d grand=%d | "
             "elapsed=%.2fs",
             session_id,
             rewrite_prompt, rewrite_output,
             answer_prompt, answer_output, cached_tokens,
+            thinking_tokens,
             total_input, total_output, grand_total,
             llm_elapsed,
         )
@@ -151,7 +156,7 @@ async def invoke_faq_agent(
 
         log_token_usage(session_id, intent, rewrite_usage, answer_usage, llm_elapsed)
         try:
-            await save_faq_token_usage(session_id, total_input, total_output)
+            await save_faq_token_usage(session_id, total_input, total_output, cached_tokens=cached_tokens, thinking_tokens=thinking_tokens)
         except Exception:
             pass
 

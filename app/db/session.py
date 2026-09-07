@@ -46,6 +46,11 @@ def get_hr_db():
     db = mongo_client[settings.MONGO_DB_NAME]
     return db[settings.MONGO_HR_COLLECTION]
 
+
+def get_faq_token_db():
+    db = mongo_client[settings.MONGO_DB_NAME]
+    return db[settings.MONGO_FAQ_TOKEN_COLLECTION]
+
 # async def create_mongo_connection(logger):
 #     try:
 #         agent_col = None

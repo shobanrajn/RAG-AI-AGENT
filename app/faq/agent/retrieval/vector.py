@@ -33,7 +33,7 @@ def get_embedding_client() -> genai.Client:
 # Batch Embedding
 # ──────────────────────────────────────────────
 # Sends all texts in ONE batch request, returns list of vectors
-def get_gemini_embeddings_batch(texts: list[str]) -> list[list]:
+def get_gemini_embeddings_batch(texts: list[str]) -> list[list]:        #gemini default is sync calling it has to wait long.. refer  get embeddings fucntion
     client = get_embedding_client()
     result = client.models.embed_content(
         model=settings.GEMINI_EMBEDDING_MODEL,
@@ -44,15 +44,15 @@ def get_gemini_embeddings_batch(texts: list[str]) -> list[list]:
 
 
 async def get_embeddings_batch(texts: list[str]) -> list[list]:
-    embeddings = await asyncio.to_thread(get_gemini_embeddings_batch, texts)
+    embeddings = await asyncio.to_thread(get_gemini_embeddings_batch, texts)      #created an asynch fucntion and get it in on batch and sending all to gether in to retrieve 
     expected_dim = get_pg_vector_dim()
     if expected_dim is not None:
         for emb in embeddings:
             if len(emb) != expected_dim:
                 raise ValueError(f"Embedding dimension mismatch: model returned {len(emb)} but table stores {expected_dim}.")
-    return embeddings
+    return 
 
-
+    
 # ──────────────────────────────────────────────
 # pgvector Retrieval
 # ──────────────────────────────────────────────

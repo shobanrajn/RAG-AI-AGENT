@@ -24,11 +24,11 @@ def rerank(query: str, chunks: list, top_k: int) -> list:
     if not chunks:
         return []
     try:
-        reranker = reranker
-        pairs = [(query, c["text"]) for c in chunks]
+        global reranker
+        pairs = [(query, c["text"]) for c in chunks]     
         scores = reranker.predict(pairs)
         for i, chunk in enumerate(chunks):
-            chunk["rerank_score"] = float(scores[i])
+            chunk["rerank_score"] = float(scores[i])     
         ranked   = sorted(chunks, key=lambda x: x["rerank_score"], reverse=True)
         filtered = [c for c in ranked if c["rerank_score"] >= settings.get("RERANK_SCORE_THRESHOLD", -1.0, float)]
         faq_log.debug("[RERANKER] threshold=%.2f | before=%d | after=%d", settings.get("RERANK_SCORE_THRESHOLD", -1.0, float), len(ranked), len(filtered))
@@ -88,7 +88,7 @@ def bm25_rerank(query: str, chunks: list) -> list:
 def merge_and_rerank(semantic: list, query: str) -> list:
     if not semantic:
         return []
-    candidates = bm25_rerank([dict(c) for c in semantic], query)
+    candidates = bm25_rerank(query, [dict(c) for c in semantic])
 
     sem_rank  = {c["text"]: i for i, c in enumerate(semantic)}
     bm25_rank = {c["text"]: i for i, c in enumerate(sorted(candidates, key=lambda c: c.get("bm25_score", 0), reverse=True))}

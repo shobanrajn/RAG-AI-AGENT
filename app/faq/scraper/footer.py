@@ -3,11 +3,10 @@ from urllib.parse import urljoin
 from bs4 import BeautifulSoup
 
 from app.faq.logging import faq_log
-from scraper.fetcher import fetch_url, clean_html, html_to_markdown
-from app.faq.scraper.scraper_utils import is_scrapable_url, save_debug_file
-from scraper.parser import parse_sections, sections_to_chunks
-from app.faq.scraper.scraper_utils import url_hash
-from scraper.stop import is_stop_requested
+from .fetcher import fetch_url, clean_html, html_to_markdown
+from .scraper_utils import is_scrapable_url, save_debug_file, url_hash
+from .parser import parse_sections, sections_to_chunks
+from .stop import is_stop_requested
 
 HEADING_TAGS = {"h2", "h3", "h4", "h5", "strong", "b"}
 

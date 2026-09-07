@@ -3,7 +3,7 @@ import time
 from collections import defaultdict
 from pathlib import Path
 
-from ...logging import token_log, _get_log_dir
+from app.faq.logging import token_log, get_log_dir as _get_log_dir
 
 # ──────────────────────────────────────────────
 # Token Usage Logging
